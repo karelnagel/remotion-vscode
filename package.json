@@ -1,13 +1,13 @@
 {
-	"name": "calico-colors",
-	"description": "Calico Colors - A Webview View API Sample",
+	"name": "remotion-vscode",
+	"description": "Remotion VSCode extension",
 	"version": "0.0.1",
-	"publisher": "vscode-samples",
-	"private": true,
+	"publisher": "@karelnagel",
+	"private": false,
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
+		"url": "https://github.com/karelnagel/remotion-vscode"
 	},
 	"engines": {
 		"vscode": "^1.50.0"
@@ -20,40 +20,49 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onView:calicoColors.colorsView",
-		"onCommand:calicoColors.addColor",
-		"onCommand:calicoColors.clearColors"
+		"onView:remotion.view",
+		"onCommand:remotion.preview",
+		"onCommand:remotion.render"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
+		"viewsContainers": {
+			"panel": [
+				{
+					"id": "remotion",
+					"title": "Remotion",
+					"icon": "resources/package-explorer.svg"
+				}
+			]
+		},
 		"views": {
-			"explorer": [
+			"remotion": [
 				{
 					"type": "webview",
-					"id": "calicoColors.colorsView",
-					"name": "Calico Colors"
+					"id": "remotion.view",
+					"name": "Remotion"
 				}
 			]
 		},
 		"commands": [
 			{
-				"command": "calicoColors.addColor",
-				"category": "Calico Colors",
-				"title": "Add Color"
+				"command": "remotion.preview",
+				"category": "Remotion",
+				"title": "Preview"
 			},
 			{
-				"command": "calicoColors.clearColors",
-				"category": "Calico Colors",
-				"title": "Clear Colors",
+				"command": "remotion.render",
+				"category": "Remotion",
+				"title": "Render",
 				"icon": "$(clear-all)"
 			}
 		],
 		"menus": {
 			"view/title": [
 				{
-					"command": "calicoColors.clearColors",
+					"command": "remotion.preview",
 					"group": "navigation",
-					"when": "view == calicoColors.colorsView"
+					"when": "view == remotion.view"
 				}
 			]
 		}

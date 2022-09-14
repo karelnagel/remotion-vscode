@@ -8,19 +8,19 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.registerWebviewViewProvider(ColorsViewProvider.viewType, provider));
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand('calicoColors.addColor', () => {
+		vscode.commands.registerCommand('remotion.preview', () => {
 			provider.addColor();
 		}));
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand('calicoColors.clearColors', () => {
+		vscode.commands.registerCommand('remotion.render', () => {
 			provider.clearColors();
 		}));
 }
 
 class ColorsViewProvider implements vscode.WebviewViewProvider {
 
-	public static readonly viewType = 'calicoColors.colorsView';
+	public static readonly viewType = 'remotion.view';
 
 	private _view?: vscode.WebviewView;
 
