@@ -2,53 +2,50 @@
 (function () {
     const vscode = acquireVsCodeApi();
 
-    const oldState = vscode.getState() || { colors: [] };
+    const postMessage = (type, value) => vscode.postMessage({ type, value });
 
-    /** @type {Array<{ value: string }>} */
-    let colors = oldState.colors;
-
-    updateColorList(colors);
-
-    document.querySelector('.add-color-button').addEventListener('click', () => {
-        addColor();
+    const button = (type) => document.getElementById(type)?.addEventListener('click', () => {
+        postMessage(type);
     });
 
-    // Handle messages sent from the extension to the webview
+    button("preview");
+    button("selectIndexFile");
+    button("refreshComps");
+    button("setPropsFile");
+    button("newPropsFile");
+    button("deletePropsFile");
+    button("loadProps");
+    button("startPreview");
+    button("render");
+    button("openBrowser");
+
+    postMessage("indexPath");
+    postMessage("selectedPropFile");
     window.addEventListener('message', event => {
-        const message = event.data; // The json data that the extension sent
+        const message = event.data;
         switch (message.type) {
-            case 'addColor':
-                {
-                    addColor();
-                    break;
-                }
-            case 'clearColors':
-                {
-                    colors = [];
-                    updateColorList(colors);
-                    break;
-                }
+            case 'indexPath':
+                document.getElementById("indexPath").textContent = message.value;
+                break;
+            case 'selectedPropFile':
+                document.getElementById("selectedPropFile").textContent = message.value;
+                postMessage("readPropFile");
+                break;
+            case 'readPropFile':
+                document.getElementById("propFile").textContent = message.value;
+                break;
 
         }
     });
 
-    
-    function onColorClicked(color) {
-        vscode.postMessage({ type: 'colorSelected', value: color });
-    }
-
-    /**
-     * @returns string
-     */
-    function getNewCalicoColor() {
-        const colors = ['020202', 'f1eeee', 'a85b20', 'daab70', 'efcb99'];
-        return colors[Math.floor(Math.random() * colors.length)];
-    }
-
-    function addColor() {
-        colors.push({ value: getNewCalicoColor() });
-        updateColorList(colors);
-    }
+    let timer = null;
+    document.getElementById("propFile").addEventListener('input', (event) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            console.log(event.target.value);
+            postMessage("writePropFile", event.target.value);
+        }, 1000);
+    });
 }());
 
 

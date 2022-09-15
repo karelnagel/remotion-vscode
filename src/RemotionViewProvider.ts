@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
-import { States } from './consts';
+import { PostType, States } from './consts';
 import { getNonce } from './helpers/nonce';
-import { deletePropsFile, writePropsFile } from './helpers/propFiles';
+import { deletePropsFile, readPropsFile, writePropsFile } from './helpers/propFiles';
 import { inputPropsFile } from './quick/inputPropsFile';
 import { quickComponent } from './quick/quickComponent';
 import { quickPropFile } from './quick/quickPropFile';
 import { selectFile } from './quick/selectFile';
 import { getComps } from './remotion/getComps';
+import { openBrowser } from './remotion/openBrowser';
 import { render } from './remotion/render';
 import { startPreview } from './remotion/startPreview';
 
@@ -38,20 +39,67 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 
 		webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-		webviewView.webview.onDidReceiveMessage(data => {
+		webviewView.webview.onDidReceiveMessage(async data => {
+			vscode.window.showInformationMessage(data.type);
 			switch (data.type) {
+				case 'selectIndexFile':
+					await this.selectIndexFile();
+					break;
+				case 'refreshComps':
+					await this.refreshComps();
+					break;
+				case 'setPropsFile':
+					await this.setPropsFile();
+					break;
+				case 'newPropsFile':
+					await this.newPropsFile();
+					break;
+				case 'deletePropsFile':
+					await this.deletePropsFile();
+					break;
+				case 'loadProps':
+					await this.loadProps();
+					break;
+				case 'render':
+					await this.render();
+					break;
 				case 'startPreview':
-					{
-						this.startPreview();
-						break;
-					}
+					await this.startPreview();
+					break;
+				case 'openBrowser':
+					await openBrowser();
+					break;
 
+				case 'indexPath':
+					this.postMessage("indexPath", await this.getState("indexPath"));
+					break;
+				case 'selectedPropFile':
+					this.postMessage("selectedPropFile", await this.getState("selectedPropFile"));
+					break;
+
+				case 'readPropFile':
+					this.postMessage("readPropFile", await this.readPropFile());
+					break;
+				case 'writePropFile':
+					await this.writePropFile(data.value);
+					break;
 			}
 		});
 	}
 	private async getEntryPoint() { return (await this.getState("indexPath")).split(vscode.workspace.workspaceFolders![0].name)[1]; }
 	private async getPropsPath() { return vscode.Uri.joinPath(this._context.storageUri!, await this.getState("selectedPropFile")).path; }
 
+	private async readPropFile() {
+		return readPropsFile(this._context, await this.getState("selectedPropFile"));
+	}
+	private async writePropFile(data: string) {
+		await writePropsFile(this._context, await this.getState("selectedPropFile"), data);
+	}
+
+	public postMessage(type: PostType, value: any) {
+		if (!this._view) return;
+		this._view.webview.postMessage({ type, value });
+	}
 	private async getState<T = string>(key: States) {
 		return (await this._context.workspaceState.get(key)) as T;
 	}
@@ -70,6 +118,7 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 
 		const path = files[0].fsPath;
 		this.setState("indexPath", path);
+		this.postMessage("indexPath", path);
 		vscode.window.showInformationMessage(`Index file set to ${path}`);
 		return path;
 	}
@@ -89,11 +138,13 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	public async newPropsFile() {
-		const fileName = await inputPropsFile(await this.getPropFiles());
+		const fileName = (await inputPropsFile(await this.getPropFiles()))?.replace(".json", "") + ".json";
 		const comp = await quickComponent("Load default props from component", await this.getState("compositions"), "Empty props");
 
 		try {
-			await writePropsFile(this._context, fileName, comp?.defaultProps);
+			await this.setState("selectedPropFile", fileName);
+			await this.writePropFile(JSON.stringify(comp?.defaultProps || {}, undefined, 2));
+			this.postMessage("selectedPropFile", fileName);
 			vscode.window.showInformationMessage('New props file created!');
 		}
 		catch (e) {
@@ -102,17 +153,12 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	public async setPropsFile() {
-		const fileName = await quickPropFile("Select a prop file", await this.getPropFiles(), await this.getState("selectedPropFile"), true);
-
-		try {
-			await this.setState("selectedPropFile", fileName);
-		}
-		catch (e) {
-			vscode.window.showErrorMessage(e as string);
-		}
+		const fileName = await quickPropFile("Select a prop file", await this.getPropFiles(), await this.getState("selectedPropFile"));
+		await this.setState("selectedPropFile", fileName);
+		this.postMessage("selectedPropFile", fileName);
 	}
 	public async deletePropsFile() {
-		const fileName = await quickPropFile("Which file to delete?", await this.getPropFiles(), await this.getState("selectedPropFile"), false);
+		const fileName = await quickPropFile("Which file to delete?", await this.getPropFiles(), await this.getState("selectedPropFile"));
 
 		try {
 			await deletePropsFile(this._context, fileName);
@@ -126,7 +172,8 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 		const comps = await quickComponent(`Select component props for ${fileName}`, await this.getState("compositions"));
 
 		try {
-			await writePropsFile(this._context, fileName, comps?.defaultProps);
+			await this.writePropFile(JSON.stringify(comps?.defaultProps || {}, undefined, 2));
+			this.postMessage("readPropFile", await this.readPropFile());
 		}
 		catch (e) {
 			vscode.window.showErrorMessage(e as string);
@@ -173,10 +220,24 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 				<title>Cat Colors</title>
 			</head>
 			<body>
-				<button class="add-color-button">Start preview</button>
+				<p id="indexPath">sdfsdf</p>
+				<p id="selectedPropFile"></p>
+				<button id="selectIndexFile">Select index file</button>
+				<button id="refreshComps">Refresh components</button>
+				<div>
+					<button id="setPropsFile">Set props file</button>
+					<button id="newPropsFile">New props file</button>
+					<button id="deletePropsFile">Delete props file</button>
+					<button id="loadProps">Load props from Component</button>
+				</div>
+				<div>
+					<button id="startPreview">Start preview</button>
+					<button id="openBrowser">Open browser</button>
+					<button id="render">Render</button>
+				</div>
 			
 				<p>Change props</p>
-				<textarea ></textarea>
+				<textarea id="propFile"></textarea>
 
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
