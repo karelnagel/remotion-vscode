@@ -1,10 +1,16 @@
 {
 	"name": "remotion-vscode",
+	"displayName": "Remotion VSCode",
 	"description": "Remotion VSCode extension",
-	"version": "0.0.1",
-	"publisher": "@karelnagel",
+	"version": "0.0.2",
+	"publisher": "KarelNagel",
 	"private": false,
 	"license": "MIT",
+	"icon": "src/images/favicon.png",
+	"galleryBanner": {
+		"color": "#0b84f3",
+		"theme": "dark"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/karelnagel/remotion-vscode"
