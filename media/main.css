@@ -13,6 +13,7 @@ body {
   font-weight: var(--vscode-font-weight);
   font-family: var(--vscode-font-family);
   background-color: var(--vscode-editor-background);
+  text-align: center;
 }
 
 ol,
@@ -58,6 +59,11 @@ button {
 button:hover {
   cursor: pointer;
   background: var(--vscode-button-hoverBackground);
+}
+
+button:disabled {
+  cursor: default;
+  background: #424242 
 }
 
 button:focus {
@@ -160,4 +166,25 @@ body {
   display: block;
   border: none;
   margin: 0 auto;
+}
+.flex {
+  display: flex;
+  align-items: center;
+}
+.flex > * {
+  margin: 0 0.5em;
+}
+#indexPath,
+#only-with-index-file {
+  display: none;
+}
+textarea {
+  height: 100%;
+  min-height: 120px;
+}
+.subtitle {
+  margin-bottom: 0.5em;
+  margin-top: 1em;
+  font-size: medium;
+  font-weight: bold;
 }

@@ -29,11 +29,11 @@
 	"main": "./out/extension.js",
 	"contributes": {
 		"viewsContainers": {
-			"panel": [
+			"activitybar": [
 				{
 					"id": "remotion",
 					"title": "Remotion",
-					"icon": "resources/package-explorer.svg"
+					"icon": "src/images/favicon.png"
 				}
 			]
 		},
@@ -88,27 +88,38 @@
 				"title": "Open browser"
 			},
 			{
-				"command": "remotion.startPreview",
+				"command": "remotion.docs",
 				"category": "Remotion",
-				"title": "Start preview",
-				"icon": "$(play)"
+				"title": "Docs",
+				"icon": "$(info)"
 			},
 			{
 				"command": "remotion.render",
 				"category": "Remotion",
 				"title": "Render",
 				"icon": "$(check)"
+			},
+			{
+				"command": "remotion.startPreview",
+				"category": "Remotion",
+				"title": "Start preview",
+				"icon": "$(play)"
 			}
 		],
 		"menus": {
 			"view/title": [
 				{
-					"command": "remotion.startPreview",
+					"command": "remotion.docs",
 					"group": "navigation",
 					"when": "view == remotion.view"
 				},
 				{
 					"command": "remotion.render",
+					"group": "navigation",
+					"when": "view == remotion.view"
+				},
+				{
+					"command": "remotion.startPreview",
 					"group": "navigation",
 					"when": "view == remotion.view"
 				}

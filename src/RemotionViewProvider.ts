@@ -40,7 +40,6 @@ export class RemotionViewProvider implements WebviewViewProvider {
 		webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
 		webviewView.webview.onDidReceiveMessage(async data => {
-			window.showInformationMessage(data.type);
 			switch (data.type) {
 				case 'init':
 					await this.init();
@@ -76,6 +75,12 @@ export class RemotionViewProvider implements WebviewViewProvider {
 				case 'indexPath':
 					this.postMessage("indexPath", await this.getState("indexPath"));
 					break;
+				case 'compositions':
+					this.postMessage("compositions", await this.getState("compositions"));
+					break;
+				case 'presets':
+					this.postMessage("presets", await this.getState("presets"));
+					break;
 
 				case 'readPropFile':
 					this.postMessage("readPropFile", await this.readPropFile());
@@ -90,7 +95,10 @@ export class RemotionViewProvider implements WebviewViewProvider {
 	private async getPropsPath() { return Uri.joinPath(this._context.storageUri!, propsFileName).path; }
 
 	private async readPropFile() {
-		return readPropsFile(this._context);
+		const result = await readPropsFile(this._context);
+		if (result) return result;
+		await this.writePropFile("{}");
+		return "{}";
 	}
 	private async writePropFile(data: string) {
 		await writePropsFile(this._context, data);
@@ -119,6 +127,7 @@ export class RemotionViewProvider implements WebviewViewProvider {
 		const path = files[0].fsPath;
 		this.setState("indexPath", path);
 		window.showInformationMessage(`Index file set to ${path}`);
+		await this.refreshComps();
 		return path;
 	}
 
@@ -211,25 +220,42 @@ export class RemotionViewProvider implements WebviewViewProvider {
 				<title>Cat Colors</title>
 			</head>
 			<body>
-				<p id="indexPath">Index path</p>
-				<button id="init">Init</button>
-				<button id="selectIndexFile">Select index file</button>
-				<button id="refreshComps">Refresh components</button>
-				<div>
-					<button id="savePreset">Save preset</button>
-					<button id="loadPreset">Load preset</button>
-					<button id="deletePreset">Delete preset</button>
-					<button id="loadProps">Load props from Component</button>
+				<p class="subtitle">Index file</p>
+				<div id="no-index-file">
+					<h3>No index file selected!</h3>
+					<button id="init">Start new Remotion project</button>
+					<p>or</p>
 				</div>
-				<div>
-					<button id="startPreview">Start preview</button>
-					<button id="openBrowser">Open browser</button>
-					<button id="render">Render</button>
+				<div class="flex">
+					<p id="indexPath"></p>
+					<button id="selectIndexFile">Select index file</button>
 				</div>
-			
-				<p>Change props</p>
-				<textarea id="propFile"></textarea>
+				<div id="only-with-index-file">
+					<p class="subtitle">Compositions</p>
+					<div class="flex">
+						<p id="compsFound">Found 0</p>
+						<button id="refreshComps">Refresh</button>
+					</div>
 
+					<p class="subtitle">Preview/Render</p>
+					<div class="flex">
+						<button id="startPreview">Preview</button>
+						<button id="openBrowser">Browser</button>
+						<button id="render">Render</button>
+					</div>
+
+
+					<p class="subtitle">Presets</p>
+					<div class="flex">
+						<button id="savePreset">Save preset</button>
+						<button id="loadPreset">Load preset</button>
+						<button id="deletePreset">Delete preset</button>
+					</div>
+
+					<p class="subtitle">Props</p>
+					<button id="loadProps">Load props from Component</button>
+					<textarea id="propFile"></textarea>
+				</div>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
 			</html>`;

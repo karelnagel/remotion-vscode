@@ -1,4 +1,4 @@
-import { commands, ExtensionContext, window } from 'vscode';
+import { commands, env, ExtensionContext, Uri, window } from 'vscode';
 import { openBrowser } from './remotion/openBrowser';
 import { RemotionViewProvider } from './RemotionViewProvider';
 
@@ -9,6 +9,10 @@ export function activate(context: ExtensionContext) {
 	context.subscriptions.push(
 		window.registerWebviewViewProvider(RemotionViewProvider.viewType, provider));
 
+	context.subscriptions.push(
+		commands.registerCommand('remotion.docs', async () => {
+			env.openExternal(Uri.parse("https://www.remotion.dev/docs/"));
+		}));
 	context.subscriptions.push(
 		commands.registerCommand('remotion.init', async () => {
 			await provider.init();
