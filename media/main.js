@@ -8,6 +8,7 @@
         postMessage(type);
     });
 
+    button("init");
     button("preview");
     button("selectIndexFile");
     button("refreshComps");

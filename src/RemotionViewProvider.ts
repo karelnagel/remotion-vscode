@@ -6,6 +6,7 @@ import { quickComponent } from './quick/quickComponent';
 import { quickPresets } from './quick/quickPropFile';
 import { selectFile } from './quick/selectFile';
 import { getComps } from './remotion/getComps';
+import { init } from './remotion/init';
 import { openBrowser } from './remotion/openBrowser';
 import { render } from './remotion/render';
 import { startPreview } from './remotion/startPreview';
@@ -41,6 +42,9 @@ export class RemotionViewProvider implements WebviewViewProvider {
 		webviewView.webview.onDidReceiveMessage(async data => {
 			window.showInformationMessage(data.type);
 			switch (data.type) {
+				case 'init':
+					await this.init();
+					break;
 				case 'selectIndexFile':
 					await this.selectIndexFile();
 					break;
@@ -90,6 +94,7 @@ export class RemotionViewProvider implements WebviewViewProvider {
 	}
 	private async writePropFile(data: string) {
 		await writePropsFile(this._context, data);
+		this.postMessage("readPropFile", data);
 	}
 
 	public postMessage(type: PostType, value: any) {
@@ -101,6 +106,7 @@ export class RemotionViewProvider implements WebviewViewProvider {
 	}
 	private async setState<T = any>(key: States, value: T | undefined) {
 		await this._context.workspaceState.update(key, value);
+		this.postMessage(key, value);
 	}
 	private async getPresets() {
 		return await this.getState<Preset[]>("presets") || [];
@@ -112,7 +118,6 @@ export class RemotionViewProvider implements WebviewViewProvider {
 
 		const path = files[0].fsPath;
 		this.setState("indexPath", path);
-		this.postMessage("indexPath", path);
 		window.showInformationMessage(`Index file set to ${path}`);
 		return path;
 	}
@@ -146,7 +151,6 @@ export class RemotionViewProvider implements WebviewViewProvider {
 		const presetName = await quickPresets("Select a preset", presets.map(p => p.name));
 		const preset = presets.find(p => p.name === presetName);
 		await this.writePropFile(preset!.props);
-		this.postMessage("readPropFile", preset!.props);
 	}
 
 	public async deletePreset() {
@@ -158,7 +162,6 @@ export class RemotionViewProvider implements WebviewViewProvider {
 	public async loadProps() {
 		const comps = await quickComponent(`Select component props`, await this.getState("compositions"));
 		await this.writePropFile(JSON.stringify(comps?.defaultProps || {}, undefined, 2));
-		this.postMessage("readPropFile", await this.readPropFile());
 	}
 
 	public async startPreview() {
@@ -166,11 +169,18 @@ export class RemotionViewProvider implements WebviewViewProvider {
 
 		startPreview(await this.getEntryPoint(), await this.getPropsPath());
 	}
+
 	public async render() {
 		const comp = await quickComponent("Select composition", await this.getState("compositions"));
 		if (!comp) return;
 		render(await this.getEntryPoint(), comp.id, await this.getPropsPath());
 		window.showInformationMessage(`Starting a render with id: `);
+	}
+
+	public async init() {
+		window.showInformationMessage(`Starting a new Remotion project, check your terminal`);
+		await init();
+		await this.setState("indexPath", Uri.joinPath(workspace.workspaceFolders![0].uri, "src", "index.tsx").fsPath);
 	}
 
 	private _getHtmlForWebview(webview: Webview) {
@@ -202,6 +212,7 @@ export class RemotionViewProvider implements WebviewViewProvider {
 			</head>
 			<body>
 				<p id="indexPath">Index path</p>
+				<button id="init">Init</button>
 				<button id="selectIndexFile">Select index file</button>
 				<button id="refreshComps">Refresh components</button>
 				<div>

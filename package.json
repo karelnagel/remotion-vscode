@@ -48,6 +48,11 @@
 		},
 		"commands": [
 			{
+				"command": "remotion.init",
+				"category": "Remotion",
+				"title": "Init"
+			},
+			{
 				"command": "remotion.selectIndexFile",
 				"category": "Remotion",
 				"title": "Select index file"
@@ -85,19 +90,25 @@
 			{
 				"command": "remotion.startPreview",
 				"category": "Remotion",
-				"title": "Start preview"
+				"title": "Start preview",
+				"icon": "$(play)"
 			},
 			{
 				"command": "remotion.render",
 				"category": "Remotion",
 				"title": "Render",
-				"icon": "$(clear-all)"
+				"icon": "$(check)"
 			}
 		],
 		"menus": {
 			"view/title": [
 				{
 					"command": "remotion.startPreview",
+					"group": "navigation",
+					"when": "view == remotion.view"
+				},
+				{
+					"command": "remotion.render",
 					"group": "navigation",
 					"when": "view == remotion.view"
 				}

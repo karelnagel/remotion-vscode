@@ -1,6 +1,6 @@
 export type States = "indexPath" | "compositions" | "presets";
 export const idk = "asdfsadfsd";
-export type PostType = "indexPath" | "readPropFile" | "writePropFile"
+export type PostType = States | "readPropFile" | "writePropFile"
 export interface Preset {
 	name: string;
 	props: string;

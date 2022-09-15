@@ -10,6 +10,10 @@ export function activate(context: ExtensionContext) {
 		window.registerWebviewViewProvider(RemotionViewProvider.viewType, provider));
 
 	context.subscriptions.push(
+		commands.registerCommand('remotion.init', async () => {
+			await provider.init();
+		}));
+	context.subscriptions.push(
 		commands.registerCommand('remotion.selectIndexFile', async () => {
 			await provider.selectIndexFile();
 		}));
