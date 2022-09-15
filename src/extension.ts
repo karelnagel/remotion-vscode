@@ -1,49 +1,49 @@
-import * as vscode from 'vscode';
+import { commands, ExtensionContext, window } from 'vscode';
 import { openBrowser } from './remotion/openBrowser';
 import { RemotionViewProvider } from './RemotionViewProvider';
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: ExtensionContext) {
 
 	const provider = new RemotionViewProvider(context.extensionUri, context);
 
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(RemotionViewProvider.viewType, provider));
+		window.registerWebviewViewProvider(RemotionViewProvider.viewType, provider));
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.selectIndexFile', async () => {
+		commands.registerCommand('remotion.selectIndexFile', async () => {
 			await provider.selectIndexFile();
 		}));
 	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.refreshComps', async () => {
+		commands.registerCommand('remotion.refreshComps', async () => {
 			await provider.refreshComps();
 		}));
 	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.setProps', async () => {
-			await provider.setPropsFile();
+		commands.registerCommand('remotion.savePreset', async () => {
+			await provider.savePreset();
 		}));
 	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.newProps', async () => {
-			await provider.newPropsFile();
+		commands.registerCommand('remotion.loadPreset', async () => {
+			await provider.loadPreset();
 		}));
 	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.deleteProps', async () => {
-			await provider.deletePropsFile();
+		commands.registerCommand('remotion.deletePreset', async () => {
+			await provider.deletePreset();
 		}));
 	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.loadProps', async () => {
+		commands.registerCommand('remotion.loadProps', async () => {
 			await provider.loadProps();
 		}));
 	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.startPreview', async () => {
+		commands.registerCommand('remotion.startPreview', async () => {
 			await provider.startPreview();
 		}));
 	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.render', async () => {
+		commands.registerCommand('remotion.render', async () => {
 			await provider.render();
 		}));
 	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.openBrowser', async () => {
+		commands.registerCommand('remotion.openBrowser', async () => {
 			await openBrowser();
 		}));
-	vscode.window.showInformationMessage("Remotion ready");
+	window.showInformationMessage("Remotion ready");
 }

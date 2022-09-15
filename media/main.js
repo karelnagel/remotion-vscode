@@ -11,28 +11,25 @@
     button("preview");
     button("selectIndexFile");
     button("refreshComps");
-    button("setPropsFile");
-    button("newPropsFile");
-    button("deletePropsFile");
+    button("savePreset");
+    button("loadPreset");
+    button("deletePreset");
     button("loadProps");
     button("startPreview");
     button("render");
     button("openBrowser");
 
     postMessage("indexPath");
-    postMessage("selectedPropFile");
+    postMessage("readPropFile");
+
     window.addEventListener('message', event => {
         const message = event.data;
         switch (message.type) {
             case 'indexPath':
                 document.getElementById("indexPath").textContent = message.value;
                 break;
-            case 'selectedPropFile':
-                document.getElementById("selectedPropFile").textContent = message.value;
-                postMessage("readPropFile");
-                break;
             case 'readPropFile':
-                document.getElementById("propFile").textContent = message.value;
+                document.getElementById("propFile").value = message.value;
                 break;
 
         }

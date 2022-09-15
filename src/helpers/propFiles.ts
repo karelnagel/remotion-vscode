@@ -1,24 +1,17 @@
-import * as vscode from 'vscode';
+import { ExtensionContext, Uri, workspace } from "vscode";
+import { propsFileName } from "../consts";
 
-export async function writePropsFile(context: vscode.ExtensionContext, fileName: string, props: string) {
+
+export async function writePropsFile(context: ExtensionContext, props: string) {
 	if (!context.storageUri) throw ("No storageUri");
+	const filePath = Uri.joinPath(context.storageUri, propsFileName);
 
-	await vscode.workspace.fs.createDirectory(context.storageUri);
-	const filePath = vscode.Uri.joinPath(context.storageUri, fileName.replace(".json", "") + ".json");
-	vscode.window.showInformationMessage(props);
-	await vscode.workspace.fs.writeFile(filePath, Buffer.from(props, "utf-8"));
+	await workspace.fs.createDirectory(context.storageUri);
+	await workspace.fs.writeFile(filePath, Buffer.from(props, "utf-8"));
 }
-export async function deletePropsFile(context: vscode.ExtensionContext, fileName?: string) {
+export async function readPropsFile(context: ExtensionContext) {
 	if (!context.storageUri) throw ("No storageUri");
-	if (!fileName) throw ("No fileName");
+	const filePath = Uri.joinPath(context.storageUri, propsFileName);
 
-	const filePath = vscode.Uri.joinPath(context.storageUri, fileName);
-	await vscode.workspace.fs.delete(filePath);
-}
-export async function readPropsFile(context: vscode.ExtensionContext, fileName?: string) {
-	if (!context.storageUri) throw ("No storageUri");
-	if (!fileName) throw ("No fileName");
-
-	const filePath = vscode.Uri.joinPath(context.storageUri, fileName);
-	return (await vscode.workspace.fs.readFile(filePath)).toString();
+	return (await workspace.fs.readFile(filePath)).toString();
 }

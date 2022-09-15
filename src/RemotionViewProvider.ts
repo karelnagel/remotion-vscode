@@ -1,33 +1,32 @@
-import * as vscode from 'vscode';
-import { PostType, States } from './consts';
+import { CancellationToken, ExtensionContext, Uri, Webview, WebviewView, WebviewViewProvider, WebviewViewResolveContext, window, workspace } from 'vscode';
+import { PostType, Preset, propsFileName, States } from './consts';
 import { getNonce } from './helpers/nonce';
-import { deletePropsFile, readPropsFile, writePropsFile } from './helpers/propFiles';
-import { inputPropsFile } from './quick/inputPropsFile';
+import { readPropsFile, writePropsFile } from './helpers/propFiles';
 import { quickComponent } from './quick/quickComponent';
-import { quickPropFile } from './quick/quickPropFile';
+import { quickPresets } from './quick/quickPropFile';
 import { selectFile } from './quick/selectFile';
 import { getComps } from './remotion/getComps';
 import { openBrowser } from './remotion/openBrowser';
 import { render } from './remotion/render';
 import { startPreview } from './remotion/startPreview';
 
-export class RemotionViewProvider implements vscode.WebviewViewProvider {
+export class RemotionViewProvider implements WebviewViewProvider {
 
 	public static readonly viewType = 'remotion.view';
 
-	private _view?: vscode.WebviewView;
+	private _view?: WebviewView;
 
 	constructor(
-		private readonly _extensionUri: vscode.Uri,
-		private readonly _context: vscode.ExtensionContext,
+		private readonly _extensionUri: Uri,
+		private readonly _context: ExtensionContext,
 	) {
 
 	}
 
 	public resolveWebviewView(
-		webviewView: vscode.WebviewView,
-		context: vscode.WebviewViewResolveContext,
-		_token: vscode.CancellationToken,
+		webviewView: WebviewView,
+		context: WebviewViewResolveContext,
+		_token: CancellationToken,
 	) {
 		this._view = webviewView;
 		webviewView.webview.options = {
@@ -40,7 +39,7 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 		webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
 		webviewView.webview.onDidReceiveMessage(async data => {
-			vscode.window.showInformationMessage(data.type);
+			window.showInformationMessage(data.type);
 			switch (data.type) {
 				case 'selectIndexFile':
 					await this.selectIndexFile();
@@ -48,14 +47,14 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 				case 'refreshComps':
 					await this.refreshComps();
 					break;
-				case 'setPropsFile':
-					await this.setPropsFile();
+				case 'savePreset':
+					await this.savePreset();
 					break;
-				case 'newPropsFile':
-					await this.newPropsFile();
+				case 'loadPreset':
+					await this.loadPreset();
 					break;
-				case 'deletePropsFile':
-					await this.deletePropsFile();
+				case 'deletePreset':
+					await this.deletePreset();
 					break;
 				case 'loadProps':
 					await this.loadProps();
@@ -73,9 +72,6 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 				case 'indexPath':
 					this.postMessage("indexPath", await this.getState("indexPath"));
 					break;
-				case 'selectedPropFile':
-					this.postMessage("selectedPropFile", await this.getState("selectedPropFile"));
-					break;
 
 				case 'readPropFile':
 					this.postMessage("readPropFile", await this.readPropFile());
@@ -86,14 +82,14 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 			}
 		});
 	}
-	private async getEntryPoint() { return (await this.getState("indexPath")).split(vscode.workspace.workspaceFolders![0].name)[1]; }
-	private async getPropsPath() { return vscode.Uri.joinPath(this._context.storageUri!, await this.getState("selectedPropFile")).path; }
+	private async getEntryPoint() { return (await this.getState("indexPath")).split(workspace.workspaceFolders![0].name)[1]; }
+	private async getPropsPath() { return Uri.joinPath(this._context.storageUri!, propsFileName).path; }
 
 	private async readPropFile() {
-		return readPropsFile(this._context, await this.getState("selectedPropFile"));
+		return readPropsFile(this._context);
 	}
 	private async writePropFile(data: string) {
-		await writePropsFile(this._context, await this.getState("selectedPropFile"), data);
+		await writePropsFile(this._context, data);
 	}
 
 	public postMessage(type: PostType, value: any) {
@@ -103,13 +99,11 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 	private async getState<T = string>(key: States) {
 		return (await this._context.workspaceState.get(key)) as T;
 	}
-	private async setState(key: States, value: any) {
+	private async setState<T = any>(key: States, value: T | undefined) {
 		await this._context.workspaceState.update(key, value);
 	}
-	private async getPropFiles() {
-		if (!this._context.storageUri) return [];
-		return (await vscode.workspace.fs.readDirectory(this._context.storageUri))
-			.map(p => p[0]);
+	private async getPresets() {
+		return await this.getState<Preset[]>("presets") || [];
 	}
 
 	public async selectIndexFile() {
@@ -119,69 +113,56 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 		const path = files[0].fsPath;
 		this.setState("indexPath", path);
 		this.postMessage("indexPath", path);
-		vscode.window.showInformationMessage(`Index file set to ${path}`);
+		window.showInformationMessage(`Index file set to ${path}`);
 		return path;
 	}
 
 	public async refreshComps() {
 		if (!this._view) return;
 		const indexPath = await this.getState("indexPath");
-		if (!indexPath) return vscode.window.showErrorMessage("No index file selected");
+		if (!indexPath) return window.showErrorMessage("No index file selected");
 		try {
 			const comps = await getComps(indexPath);
 			await this.setState("compositions", comps);
-			vscode.window.showInformationMessage(`Found ${comps.length} compositions`);
+			window.showInformationMessage(`Found ${comps.length} compositions`);
 		}
 		catch (e) {
-			vscode.window.showErrorMessage(e as string);
+			window.showErrorMessage(e as string);
 		}
 	}
 
-	public async newPropsFile() {
-		const fileName = (await inputPropsFile(await this.getPropFiles()))?.replace(".json", "") + ".json";
-		const comp = await quickComponent("Load default props from component", await this.getState("compositions"), "Empty props");
-
-		try {
-			await this.setState("selectedPropFile", fileName);
-			await this.writePropFile(JSON.stringify(comp?.defaultProps || {}, undefined, 2));
-			this.postMessage("selectedPropFile", fileName);
-			vscode.window.showInformationMessage('New props file created!');
-		}
-		catch (e) {
-			vscode.window.showErrorMessage(e as string);
-		}
+	public async savePreset() {
+		const presets = await this.getPresets();
+		const presetName = await quickPresets("Select preset", presets.map(p => p.name), true);
+		await this.setState<Preset[]>("presets",
+			[
+				{ name: presetName, props: await this.readPropFile() },
+				...presets.filter(p => p.name !== presetName)
+			]);
 	}
 
-	public async setPropsFile() {
-		const fileName = await quickPropFile("Select a prop file", await this.getPropFiles(), await this.getState("selectedPropFile"));
-		await this.setState("selectedPropFile", fileName);
-		this.postMessage("selectedPropFile", fileName);
+	public async loadPreset() {
+		const presets = await this.getState<Preset[]>("presets");
+		const presetName = await quickPresets("Select a preset", presets.map(p => p.name));
+		const preset = presets.find(p => p.name === presetName);
+		await this.writePropFile(preset!.props);
+		this.postMessage("readPropFile", preset!.props);
 	}
-	public async deletePropsFile() {
-		const fileName = await quickPropFile("Which file to delete?", await this.getPropFiles(), await this.getState("selectedPropFile"));
 
-		try {
-			await deletePropsFile(this._context, fileName);
-		}
-		catch (e) {
-			vscode.window.showErrorMessage(e as string);
-		}
+	public async deletePreset() {
+		const presets = await this.getState<Preset[]>("presets");
+		const presetName = await quickPresets("Which preset to delete?", presets.map(p => p.name));
+		await this.setState<Preset[]>("presets", presets.filter(p => p.name !== presetName));
 	}
+
 	public async loadProps() {
-		const fileName = await this.getState("selectedPropFile");
-		const comps = await quickComponent(`Select component props for ${fileName}`, await this.getState("compositions"));
-
-		try {
-			await this.writePropFile(JSON.stringify(comps?.defaultProps || {}, undefined, 2));
-			this.postMessage("readPropFile", await this.readPropFile());
-		}
-		catch (e) {
-			vscode.window.showErrorMessage(e as string);
-		}
+		const comps = await quickComponent(`Select component props`, await this.getState("compositions"));
+		await this.writePropFile(JSON.stringify(comps?.defaultProps || {}, undefined, 2));
+		this.postMessage("readPropFile", await this.readPropFile());
 	}
 
 	public async startPreview() {
-		vscode.window.showInformationMessage('Starting preview...');
+		window.showInformationMessage('Starting preview...');
 
 		startPreview(await this.getEntryPoint(), await this.getPropsPath());
 	}
@@ -189,15 +170,15 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 		const comp = await quickComponent("Select composition", await this.getState("compositions"));
 		if (!comp) return;
 		render(await this.getEntryPoint(), comp.id, await this.getPropsPath());
-		vscode.window.showInformationMessage(`Starting a render with id: `);
+		window.showInformationMessage(`Starting a render with id: `);
 	}
 
-	private _getHtmlForWebview(webview: vscode.Webview) {
+	private _getHtmlForWebview(webview: Webview) {
 		// Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
-		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
+		const scriptUri = webview.asWebviewUri(Uri.joinPath(this._extensionUri, 'media', 'main.js'));
 
 		// Do the same for the stylesheet.
-		const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.css'));
+		const styleMainUri = webview.asWebviewUri(Uri.joinPath(this._extensionUri, 'media', 'main.css'));
 
 		// Use a nonce to only allow a specific script to be run.
 		const nonce = getNonce();
@@ -220,14 +201,13 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 				<title>Cat Colors</title>
 			</head>
 			<body>
-				<p id="indexPath">sdfsdf</p>
-				<p id="selectedPropFile"></p>
+				<p id="indexPath">Index path</p>
 				<button id="selectIndexFile">Select index file</button>
 				<button id="refreshComps">Refresh components</button>
 				<div>
-					<button id="setPropsFile">Set props file</button>
-					<button id="newPropsFile">New props file</button>
-					<button id="deletePropsFile">Delete props file</button>
+					<button id="savePreset">Save preset</button>
+					<button id="loadPreset">Load preset</button>
+					<button id="deletePreset">Delete preset</button>
 					<button id="loadProps">Load props from Component</button>
 				</div>
 				<div>

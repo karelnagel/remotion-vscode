@@ -58,19 +58,19 @@
 				"title": "Refresh compositions"
 			},
 			{
-				"command": "remotion.setProps",
+				"command": "remotion.savePreset",
 				"category": "Remotion",
-				"title": "Set props"
+				"title": "Save preset"
 			},
 			{
-				"command": "remotion.newProps",
+				"command": "remotion.loadPreset",
 				"category": "Remotion",
-				"title": "New props"
+				"title": "Load preset"
 			},
 			{
-				"command": "remotion.deleteProps",
+				"command": "remotion.deletePreset",
 				"category": "Remotion",
-				"title": "Delete props"
+				"title": "Delete preset"
 			},
 			{
 				"command": "remotion.loadProps",
