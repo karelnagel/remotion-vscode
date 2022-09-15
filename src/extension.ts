@@ -1,13 +1,6 @@
-import { getCompositions } from '@remotion/renderer';
 import * as vscode from 'vscode';
-import { getIndexRelativePath } from './helpers/getIndexPath';
 import { openBrowser } from './remotion/openBrowser';
-import { getPropsFile } from './props/setPropsFile';
-import { startPreview } from './remotion/startPreview';
 import { RemotionViewProvider } from './RemotionViewProvider';
-import { quickComponent } from './quick/quickComponent';
-import { inputPropsFile } from './quick/inputPropsFile';
-import { quickPropFile } from './quick/quickPropFile';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -17,32 +10,40 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.registerWebviewViewProvider(RemotionViewProvider.viewType, provider));
 
 	context.subscriptions.push(
+		vscode.commands.registerCommand('remotion.selectIndexFile', async () => {
+			await provider.selectIndexFile();
+		}));
+	context.subscriptions.push(
+		vscode.commands.registerCommand('remotion.refreshComps', async () => {
+			await provider.refreshComps();
+		}));
+	context.subscriptions.push(
+		vscode.commands.registerCommand('remotion.setProps', async () => {
+			await provider.setPropsFile();
+		}));
+	context.subscriptions.push(
+		vscode.commands.registerCommand('remotion.newProps', async () => {
+			await provider.newPropsFile();
+		}));
+	context.subscriptions.push(
+		vscode.commands.registerCommand('remotion.deleteProps', async () => {
+			await provider.deletePropsFile();
+		}));
+	context.subscriptions.push(
+		vscode.commands.registerCommand('remotion.loadProps', async () => {
+			await provider.loadProps();
+		}));
+	context.subscriptions.push(
 		vscode.commands.registerCommand('remotion.startPreview', async () => {
-			await startPreview(await getIndexRelativePath(), "props.json");
+			await provider.startPreview();
+		}));
+	context.subscriptions.push(
+		vscode.commands.registerCommand('remotion.render', async () => {
+			await provider.render();
 		}));
 	context.subscriptions.push(
 		vscode.commands.registerCommand('remotion.openBrowser', async () => {
 			await openBrowser();
-		}));
-	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.setProps', async () => {
-			const propFile = await quickPropFile(context, getPropsFile(context), true);
-
-			await provider.setPropsFile(propFile);
-		}));
-	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.newProps', async () => {
-			const fileName = await inputPropsFile(context);
-			const comp = await quickComponent("Load default props from component", "Empty props");
-			await provider.newPropsFile(fileName, comp?.defaultProps);
-		}));
-
-	context.subscriptions.push(
-		vscode.commands.registerCommand('remotion.render', async () => {
-			const comp = await quickComponent("Select composition to render");
-			if (!comp) return;
-			provider.render(comp.id);
-
 		}));
 	vscode.window.showInformationMessage("Remotion ready");
 }

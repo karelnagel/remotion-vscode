@@ -48,14 +48,14 @@
 		},
 		"commands": [
 			{
-				"command": "remotion.openBrowser",
+				"command": "remotion.selectIndexFile",
 				"category": "Remotion",
-				"title": "Open browser"
+				"title": "Select index file"
 			},
 			{
-				"command": "remotion.startPreview",
+				"command": "remotion.refreshComps",
 				"category": "Remotion",
-				"title": "Start preview"
+				"title": "Refresh compositions"
 			},
 			{
 				"command": "remotion.setProps",
@@ -66,6 +66,26 @@
 				"command": "remotion.newProps",
 				"category": "Remotion",
 				"title": "New props"
+			},
+			{
+				"command": "remotion.deleteProps",
+				"category": "Remotion",
+				"title": "Delete props"
+			},
+			{
+				"command": "remotion.loadProps",
+				"category": "Remotion",
+				"title": "Load props"
+			},
+			{
+				"command": "remotion.openBrowser",
+				"category": "Remotion",
+				"title": "Open browser"
+			},
+			{
+				"command": "remotion.startPreview",
+				"category": "Remotion",
+				"title": "Start preview"
 			},
 			{
 				"command": "remotion.render",

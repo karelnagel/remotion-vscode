@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
-import { getPropFiles } from '../props/getPropFiles';
 
-export async function quickPropFile(context: vscode.ExtensionContext, selectedValue?: string, customOption?: boolean) {
+export async function quickPropFile(title: string, propFiles: string[], selectedValue?: string, customOption?: boolean) {
 	const quickPick = vscode.window.createQuickPick();
+	quickPick.title = title;
 	quickPick.placeholder = "Select props file";
-	const propFiles = await getPropFiles(context);
-	const items = propFiles.map(p => ({ label: p.label, picked: p.label === selectedValue }));
+	const items = propFiles.map(p => ({ label: p, picked: p === selectedValue }));
 	quickPick.items = customOption ?
 		[{ label: "Path to props" }, ...items] : items;
 	quickPick.onDidHide(() => quickPick.dispose());

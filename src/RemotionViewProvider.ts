@@ -1,7 +1,14 @@
 import * as vscode from 'vscode';
+import { States } from './consts';
 import { getNonce } from './helpers/nonce';
-import { newPropsFile } from './props/newPropsFile';
-import { setPropsFile } from './props/setPropsFile';
+import { deletePropsFile, writePropsFile } from './helpers/propFiles';
+import { inputPropsFile } from './quick/inputPropsFile';
+import { quickComponent } from './quick/quickComponent';
+import { quickPropFile } from './quick/quickPropFile';
+import { selectFile } from './quick/selectFile';
+import { getComps } from './remotion/getComps';
+import { render } from './remotion/render';
+import { startPreview } from './remotion/startPreview';
 
 export class RemotionViewProvider implements vscode.WebviewViewProvider {
 
@@ -38,57 +45,55 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 						this.startPreview();
 						break;
 					}
-				case 'endPreview':
-					{
-						this.endPreview();
-						break;
-					}
-				case 'openBrowser':
-					{
-						this.openBrowser();
-						break;
-					}
-				case 'render':
-					{
-						this.render(data.id);
-						break;
-					}
-				case 'newProps':
-					{
-						this.newPropsFile(data.fileName, data.props);
-						break;
-					}
+
 			}
 		});
 	}
+	private async getEntryPoint() { return (await this.getState("indexPath")).split(vscode.workspace.workspaceFolders![0].name)[1]; }
+	private async getPropsPath() { return vscode.Uri.joinPath(this._context.storageUri!, await this.getState("selectedPropFile")).path; }
 
-	public startPreview() {
-		if (!this._view) return;
-
-		this._view.show?.(true);
-		vscode.window.showInformationMessage('Starting preview...');
-		// Todo start preview
-		this._view.webview.postMessage({ type: 'startPreview', success: true });
-
+	private async getState<T = string>(key: States) {
+		return (await this._context.workspaceState.get(key)) as T;
 	}
-	public endPreview() {
-		if (!this._view) return;
-
-		this._view.show?.(true);
-		vscode.window.showInformationMessage('Ending preview...');
-
-		// Todo stop preview
-		this._view.webview.postMessage({ type: 'endPreview' });
-
+	private async setState(key: States, value: any) {
+		await this._context.workspaceState.update(key, value);
+	}
+	private async getPropFiles() {
+		if (!this._context.storageUri) return [];
+		return (await vscode.workspace.fs.readDirectory(this._context.storageUri))
+			.map(p => p[0]);
 	}
 
-	public async newPropsFile(fileName?: string, props?: any) {
-		if (!this._view) return;
+	public async selectIndexFile() {
+		const files = await selectFile();
+		if (!files) return;
 
-		vscode.window.showInformationMessage('Creating new props file...');
+		const path = files[0].fsPath;
+		this.setState("indexPath", path);
+		vscode.window.showInformationMessage(`Index file set to ${path}`);
+		return path;
+	}
+
+	public async refreshComps() {
+		if (!this._view) return;
+		const indexPath = await this.getState("indexPath");
+		if (!indexPath) return vscode.window.showErrorMessage("No index file selected");
 		try {
-			await newPropsFile(this._context, fileName, props);
-			this._view.webview.postMessage({ type: 'newProps', fileName });
+			const comps = await getComps(indexPath);
+			await this.setState("compositions", comps);
+			vscode.window.showInformationMessage(`Found ${comps.length} compositions`);
+		}
+		catch (e) {
+			vscode.window.showErrorMessage(e as string);
+		}
+	}
+
+	public async newPropsFile() {
+		const fileName = await inputPropsFile(await this.getPropFiles());
+		const comp = await quickComponent("Load default props from component", await this.getState("compositions"), "Empty props");
+
+		try {
+			await writePropsFile(this._context, fileName, comp?.defaultProps);
 			vscode.window.showInformationMessage('New props file created!');
 		}
 		catch (e) {
@@ -96,36 +101,48 @@ export class RemotionViewProvider implements vscode.WebviewViewProvider {
 		}
 	}
 
-	public async setPropsFile(fileName: string, props?: any) {
-		if (!this._view) return;
+	public async setPropsFile() {
+		const fileName = await quickPropFile("Select a prop file", await this.getPropFiles(), await this.getState("selectedPropFile"), true);
 
 		try {
-			await setPropsFile(this._context, fileName);
-			this._view.webview.postMessage({ type: 'newProps', fileName });
+			await this.setState("selectedPropFile", fileName);
+		}
+		catch (e) {
+			vscode.window.showErrorMessage(e as string);
+		}
+	}
+	public async deletePropsFile() {
+		const fileName = await quickPropFile("Which file to delete?", await this.getPropFiles(), await this.getState("selectedPropFile"), false);
+
+		try {
+			await deletePropsFile(this._context, fileName);
+		}
+		catch (e) {
+			vscode.window.showErrorMessage(e as string);
+		}
+	}
+	public async loadProps() {
+		const fileName = await this.getState("selectedPropFile");
+		const comps = await quickComponent(`Select component props for ${fileName}`, await this.getState("compositions"));
+
+		try {
+			await writePropsFile(this._context, fileName, comps?.defaultProps);
 		}
 		catch (e) {
 			vscode.window.showErrorMessage(e as string);
 		}
 	}
 
-	public openBrowser() {
-		if (!this._view) return;
+	public async startPreview() {
+		vscode.window.showInformationMessage('Starting preview...');
 
-		this._view.show?.(true);
-		vscode.window.showInformationMessage('Opening browser...');
-
-		this._view.webview.postMessage({ type: 'preview' });
-
+		startPreview(await this.getEntryPoint(), await this.getPropsPath());
 	}
-	public render(id: string) {
-		if (!this._view) return;
-
-		this._view.show?.(true);
-		vscode.window.showInformationMessage(`Starting a render with id: ${id}`);
-
-		// Todo start rendering 
-		this._view.webview.postMessage({ type: 'preview' });
-
+	public async render() {
+		const comp = await quickComponent("Select composition", await this.getState("compositions"));
+		if (!comp) return;
+		render(await this.getEntryPoint(), comp.id, await this.getPropsPath());
+		vscode.window.showInformationMessage(`Starting a render with id: `);
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {

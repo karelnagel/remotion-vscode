@@ -1,0 +1,1 @@
+export type States = "indexPath" | "selectedPropFile" | "compositions";
