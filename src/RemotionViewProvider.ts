@@ -254,7 +254,7 @@ export class RemotionViewProvider implements WebviewViewProvider {
 
 					<p class="subtitle">Props</p>
 					<button id="loadProps">Load props from Component</button>
-					<textarea id="propFile"></textarea>
+					<textarea id="propFile">{}</textarea>
 				</div>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
