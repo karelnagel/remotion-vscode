@@ -4,9 +4,14 @@ Demonstrates VS Code's proposed [webview view API](https://github.com/microsoft/
 
 - Contributing a webview based view to the explorer.
 - Posting messages from an extension to a webview view
-- Posting message from a webview to an extension  
+- Posting message from a webview to an extension
 - Persisting state in the view.
 - Contributing commands to the view title.
+
+## Getting started
+
+Upon installation, a new Remotion icon will show up the sidebar.
+Select the Remotion index file (usually `src/index.tsx`) to enable the rest of the functionality.
 
 ## VS Code API
 
