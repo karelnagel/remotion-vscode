@@ -2,7 +2,7 @@
 	"name": "remotion-vscode",
 	"displayName": "Remotion VSCode",
 	"description": "Remotion VSCode extension",
-	"version": "0.0.2",
+	"version": "0.1.0",
 	"publisher": "KarelNagel",
 	"private": false,
 	"license": "MIT",
