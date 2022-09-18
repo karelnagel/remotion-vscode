@@ -96,9 +96,7 @@ export class RemotionViewProvider implements WebviewViewProvider {
 
 	private async readPropFile() {
 		const result = await readPropsFile(this._context);
-		if (result) return result;
-		await this.writePropFile("{}");
-		return "{}";
+		return result;
 	}
 	private async writePropFile(data: string) {
 		await writePropsFile(this._context, data);
@@ -127,6 +125,7 @@ export class RemotionViewProvider implements WebviewViewProvider {
 		const path = files[0].fsPath;
 		this.setState("indexPath", path);
 		window.showInformationMessage(`Index file set to ${path}`);
+		await this.writePropFile("{}");
 		await this.refreshComps();
 		return path;
 	}
@@ -189,6 +188,7 @@ export class RemotionViewProvider implements WebviewViewProvider {
 	public async init() {
 		window.showInformationMessage(`Starting a new Remotion project, check your terminal`);
 		await init();
+		await this.writePropFile("{}");
 		await this.setState("indexPath", Uri.joinPath(workspace.workspaceFolders![0].uri, "src", "index.tsx").fsPath);
 	}
 
@@ -254,7 +254,7 @@ export class RemotionViewProvider implements WebviewViewProvider {
 
 					<p class="subtitle">Props</p>
 					<button id="loadProps">Load props from Component</button>
-					<textarea id="propFile">{}</textarea>
+					<textarea id="propFile"></textarea>
 				</div>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>

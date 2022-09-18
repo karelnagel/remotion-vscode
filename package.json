@@ -133,6 +133,7 @@
 		}
 	},
 	"scripts": {
+		"vscode:publish": "vsce publish minor",
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
 		"lint": "eslint . --ext .ts,.tsx",
